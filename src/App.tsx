@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { db } from './db';
-import type { Task, ViewMode } from './types';
+import type { SyncStatus, Task, ViewMode } from './types';
 import { isCompletedToday, isDueToday, isOverdue, formatDateLabel, addDays, toDateKey } from './lib/date';
+import { syncNow } from './lib/sync';
+import { isCloudConfigured } from './lib/supabase';
 import TaskItem from './components/TaskItem';
 import TaskForm, { type TaskDraft } from './components/TaskForm';
 
@@ -12,27 +14,64 @@ function makeUuid(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function syncStatusText(status: SyncStatus): string {
+  if (status === 'unconfigured') return '云端未配置';
+  if (status === 'syncing') return '同步中…';
+  if (status === 'synced') return '已同步';
+  if (status === 'error') return '同步失败';
+  return '本地模式';
+}
+
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [view, setView] = useState<ViewMode>('today');
   const [editing, setEditing] = useState<Task | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const syncingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const all = await db.tasks.orderBy('createdAt').reverse().toArray();
     setTasks(all);
   }, []);
 
-  useEffect(() => {
-    void refresh();
+  const runSync = useCallback(async () => {
+    if (!isCloudConfigured) {
+      setSyncStatus('unconfigured');
+      return;
+    }
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    setSyncStatus('syncing');
+    try {
+      const result = await syncNow();
+      if (result.error) {
+        setSyncStatus('unconfigured');
+      } else {
+        setSyncStatus('synced');
+        await refresh();
+      }
+    } catch {
+      setSyncStatus('error');
+    } finally {
+      syncingRef.current = false;
+    }
   }, [refresh]);
+
+  useEffect(() => {
+    void (async () => {
+      await refresh();
+      await runSync();
+    })();
+  }, [refresh, runSync]);
 
   const handleSave = useCallback(async (draft: TaskDraft) => {
     const now = Date.now();
     if (editing?.id) {
       await db.tasks.update(editing.id, {
         ...draft,
-        updatedAt: now
+        updatedAt: now,
+        syncedAt: null
       });
     } else {
       await db.tasks.add({
@@ -41,32 +80,37 @@ export default function App() {
         status: 'active',
         createdAt: now,
         updatedAt: now,
-        completedAt: null
+        completedAt: null,
+        deletedAt: null,
+        syncedAt: null
       });
     }
     setEditing(null);
     setFormOpen(false);
     await refresh();
-  }, [editing, refresh]);
+    void runSync();
+  }, [editing, refresh, runSync]);
 
   const handleToggle = useCallback(async (id: number) => {
     const task = await db.tasks.get(id);
     if (!task) return;
     if (task.status === 'completed') {
-      await db.tasks.update(id, { status: 'active', completedAt: null, updatedAt: Date.now() });
+      await db.tasks.update(id, { status: 'active', completedAt: null, updatedAt: Date.now(), syncedAt: null });
     } else {
-      await db.tasks.update(id, { status: 'completed', completedAt: Date.now(), updatedAt: Date.now() });
+      await db.tasks.update(id, { status: 'completed', completedAt: Date.now(), updatedAt: Date.now(), syncedAt: null });
     }
     await refresh();
-  }, [refresh]);
+    void runSync();
+  }, [refresh, runSync]);
 
   const handleDelete = useCallback(async (id: number) => {
     const task = await db.tasks.get(id);
     if (!task) return;
     if (!window.confirm(`确定删除「${task.title}」吗？`)) return;
-    await db.tasks.update(id, { status: 'deleted', updatedAt: Date.now() });
+    await db.tasks.update(id, { status: 'deleted', deletedAt: Date.now(), updatedAt: Date.now(), syncedAt: null });
     await refresh();
-  }, [refresh]);
+    void runSync();
+  }, [refresh, runSync]);
 
   const active = useMemo(() => tasks.filter((t) => t.status !== 'deleted'), [tasks]);
   const overdue = useMemo(() => active.filter(isOverdue), [active]);
@@ -98,6 +142,7 @@ export default function App() {
         <div>
           <p className="eyebrow">{view === 'today' ? '今天' : '未来 30 天'}</p>
           <h1>{formatDateLabel(view === 'today' ? toDateKey(new Date()) : '') || '个人秘书'}</h1>
+          <span className={`sync-status ${syncStatus}`}>{syncStatusText(syncStatus)}</span>
         </div>
         <div className="progress-pill">
           {completedCount}/{totalDueCount}

@@ -322,3 +322,25 @@ textarea:focus {
     right: calc((100vw - 720px) / 2 + 20px);
   }
 }
+.sync-status {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sync-status.syncing {
+  color: var(--primary);
+}
+
+.sync-status.synced {
+  color: #16a34a;
+}
+
+.sync-status.error {
+  color: var(--danger);
+}
+
+.sync-status.unconfigured {
+  color: #94a3b8;
+}

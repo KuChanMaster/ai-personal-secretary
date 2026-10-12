@@ -12,6 +12,9 @@ export interface Task {
   createdAt: number;
   updatedAt: number;
   completedAt: number | null;
+  deletedAt?: number | null;
+  syncedAt?: number | null;
 }
 
 export type ViewMode = 'today' | 'upcoming';
+export type SyncStatus = 'unconfigured' | 'idle' | 'syncing' | 'synced' | 'error';
