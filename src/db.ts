@@ -19,6 +19,10 @@ class SecretaryDatabase extends Dexie {
       tasks: '++id, uuid, dueDate, status, updatedAt, createdAt, deletedAt, syncedAt',
       meta: 'key'
     });
+    this.version(3).stores({
+      tasks: '++id, uuid, dueDate, status, updatedAt, createdAt, deletedAt, syncedAt, remindAt, remindedAt',
+      meta: 'key'
+    });
   }
 }
 

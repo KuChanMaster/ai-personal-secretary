@@ -8,6 +8,7 @@ export interface TaskDraft {
   dueDate: string;
   dueTime: string;
   important: boolean;
+  remindAt: number | null;
 }
 
 interface Props {
@@ -16,19 +17,47 @@ interface Props {
   onCancel: () => void;
 }
 
+function timeFromTimestamp(timestamp?: number | null): string {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 export default function TaskForm({ initial, onSave, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [note, setNote] = useState(initial?.note ?? '');
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? todayKey());
   const [dueTime, setDueTime] = useState(initial?.dueTime ?? '');
   const [important, setImportant] = useState(initial?.important ?? false);
+  const [reminderEnabled, setReminderEnabled] = useState((initial?.remindAt ?? null) !== null);
+  const [remindTime, setRemindTime] = useState(
+    timeFromTimestamp(initial?.remindAt) || initial?.dueTime || '09:00'
+  );
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) return;
-    onSave({ title: trimmed, note: note.trim(), dueDate, dueTime, important });
+
+    let remindAt: number | null = null;
+    if (reminderEnabled && dueDate && remindTime) {
+      const value = new Date(`${dueDate}T${remindTime}:00`).getTime();
+      remindAt = Number.isNaN(value) ? null : value;
+    }
+
+    onSave({
+      title: trimmed,
+      note: note.trim(),
+      dueDate,
+      dueTime,
+      important,
+      remindAt
+    });
   };
+
+  const canRemind = reminderEnabled && !!dueDate;
 
   return (
     <div className="overlay" role="dialog" aria-modal="true">
@@ -59,6 +88,24 @@ export default function TaskForm({ initial, onSave, onCancel }: Props) {
             <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
           </label>
         </div>
+
+        <label className="toggle-row">
+          <input
+            type="checkbox"
+            checked={canRemind}
+            disabled={!dueDate}
+            onChange={(e) => setReminderEnabled(e.target.checked)}
+          />
+          <span>开启提醒</span>
+          {!dueDate && <span className="hint">需要先选择日期</span>}
+        </label>
+
+        {canRemind && (
+          <label className="field">
+            <span className="field-label">提醒时间</span>
+            <input type="time" value={remindTime} onChange={(e) => setRemindTime(e.target.value)} />
+          </label>
+        )}
 
         <label className="field">
           <span className="field-label">备注</span>

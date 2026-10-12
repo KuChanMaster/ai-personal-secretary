@@ -14,7 +14,8 @@ export interface Task {
   completedAt: number | null;
   deletedAt?: number | null;
   syncedAt?: number | null;
+  remindAt?: number | null;
+  remindedAt?: number | null;
 }
 
 export type ViewMode = 'today' | 'upcoming';
-export type SyncStatus = 'unconfigured' | 'idle' | 'syncing' | 'synced' | 'error';

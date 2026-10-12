@@ -4,6 +4,7 @@ import type { Task, ViewMode } from './types';
 import { isCompletedToday, isDueToday, isOverdue, formatDateLabel, addDays, toDateKey } from './lib/date';
 import TaskItem from './components/TaskItem';
 import TaskForm, { type TaskDraft } from './components/TaskForm';
+import { notificationState, requestNotificationPermission, startReminderLoop } from './lib/notifications';
 
 function makeUuid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -17,6 +18,7 @@ export default function App() {
   const [view, setView] = useState<ViewMode>('today');
   const [editing, setEditing] = useState<Task | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [notifyState, setNotifyState] = useState(notificationState());
 
   const refresh = useCallback(async () => {
     const all = await db.tasks.orderBy('createdAt').reverse().toArray();
@@ -27,29 +29,51 @@ export default function App() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    startReminderLoop();
+  }, []);
+
   const handleSave = useCallback(async (draft: TaskDraft) => {
     const now = Date.now();
     if (editing?.id) {
+      const changedReminder = (editing.remindAt ?? null) !== draft.remindAt;
       await db.tasks.update(editing.id, {
-        ...draft,
-        updatedAt: now
+        title: draft.title,
+        note: draft.note,
+        dueDate: draft.dueDate,
+        dueTime: draft.dueTime,
+        important: draft.important,
+        remindAt: draft.remindAt,
+        updatedAt: now,
+        ...(changedReminder ? { remindedAt: null } : {})
       });
     } else {
       await db.tasks.add({
         uuid: makeUuid(),
-        ...draft,
+        title: draft.title,
+        note: draft.note,
+        dueDate: draft.dueDate,
+        dueTime: draft.dueTime,
+        important: draft.important,
+        remindAt: draft.remindAt,
         status: 'active',
         createdAt: now,
         updatedAt: now,
         completedAt: null,
         deletedAt: null,
-        syncedAt: null
+        syncedAt: null,
+        remindedAt: null
       });
     }
     setEditing(null);
     setFormOpen(false);
     await refresh();
   }, [editing, refresh]);
+
+  const handleNotifyPermission = useCallback(async () => {
+    const state = await requestNotificationPermission();
+    setNotifyState(state);
+  }, []);
 
   const handleToggle = useCallback(async (id: number) => {
     const task = await db.tasks.get(id);
@@ -101,8 +125,18 @@ export default function App() {
           <p className="eyebrow">{view === 'today' ? '今天' : '未来 30 天'}</p>
           <h1>{formatDateLabel(view === 'today' ? toDateKey(new Date()) : '') || '个人秘书'}</h1>
         </div>
-        <div className="progress-pill">
-          {completedCount}/{totalDueCount}
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className={`notify-button ${notifyState === 'granted' ? 'granted' : ''}`}
+            onClick={handleNotifyPermission}
+            title={notifyState === 'granted' ? '通知已开启' : '开启通知权限'}
+          >
+            🔔
+          </button>
+          <div className="progress-pill">
+            {completedCount}/{totalDueCount}
+          </div>
         </div>
       </header>
 
