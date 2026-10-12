@@ -25,7 +25,9 @@
   - 删除使用软删除和 deleted_at，避免墓碑丢失。
 - 当前为“行级最后修改优先”；单人使用冲突概率低。后续可升级为字段级合并。
 
-## 4. Supabase 配置步骤
+## 4. 当前状态：本地离线优先，云同步预留（暂不启用）
+云同步目前不会自动运行；日后需要时再执行以下步骤：
+
 1. 创建 Supabase 项目（可选区域）。
 2. 在 SQL Editor 执行 `supabase/schema.sql`。
 3. 在 Authentication > Sign In / Providers 中开启 Anonymous sign-ins。

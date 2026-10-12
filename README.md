@@ -6,7 +6,7 @@
 
 - 阶段 0：产品决策与设计冻结 ✅
 - 阶段 1：可安装的离线 PWA 骨架 ✅
-- 阶段 2：即开即用匿名登录 + Supabase 云端同步 🚧（代码骨架完成，待配置 Supabase 后联调）
+- 阶段 2：本地离线版本 ✅（云同步能力已预留，暂不启用，日后可加）
 
 ## 技术栈
 
@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-## 启用云端同步
+## 日后启用云端同步（可选）
 
 1. 复制 `.env.example` 为 `.env`，填入 Supabase 项目信息。
 2. 在 Supabase SQL Editor 执行 `supabase/schema.sql`。
