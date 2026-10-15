@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Task } from './types';
+import type { DailyReview, Habit, HabitLog, Task } from './types';
 
 export interface MetaRow {
   key: string;
@@ -8,6 +8,9 @@ export interface MetaRow {
 
 class SecretaryDatabase extends Dexie {
   tasks!: Table<Task, number>;
+  reviews!: Table<DailyReview, number>;
+  habits!: Table<Habit, number>;
+  habitLogs!: Table<HabitLog, number>;
   meta!: Table<MetaRow, string>;
 
   constructor() {
@@ -21,6 +24,13 @@ class SecretaryDatabase extends Dexie {
     });
     this.version(3).stores({
       tasks: '++id, uuid, dueDate, status, updatedAt, createdAt, deletedAt, syncedAt, remindAt, remindedAt',
+      meta: 'key'
+    });
+    this.version(4).stores({
+      tasks: '++id, uuid, dueDate, status, updatedAt, createdAt, deletedAt, syncedAt, remindAt, remindedAt',
+      reviews: '++id, dateKey, updatedAt',
+      habits: '++id, active, updatedAt',
+      habitLogs: '++id, habitId, dateKey, [habitId+dateKey]',
       meta: 'key'
     });
   }

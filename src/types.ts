@@ -18,4 +18,31 @@ export interface Task {
   remindedAt?: number | null;
 }
 
-export type ViewMode = 'today' | 'upcoming';
+export interface DailyReview {
+  id?: number;
+  dateKey: string;
+  done: string;
+  problems: string;
+  top1: string;
+  top2: string;
+  top3: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Habit {
+  id?: number;
+  name: string;
+  active: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface HabitLog {
+  id?: number;
+  habitId: number;
+  dateKey: string;
+  createdAt: number;
+}
+
+export type ViewMode = 'today' | 'upcoming' | 'review' | 'stats';

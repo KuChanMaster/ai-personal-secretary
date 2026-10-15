@@ -40,3 +40,11 @@ export function isDueToday(task: Pick<Task, 'dueDate'>): boolean {
 export function isCompletedToday(task: Pick<Task, 'completedAt'>): boolean {
   return !!task.completedAt && toDateKey(new Date(task.completedAt)) === todayKey();
 }
+export function tomorrowKey(): string {
+  return toDateKey(addDays(new Date(), 1));
+}
+
+export function completedDateKey(completedAt: number | null | undefined): string | null {
+  if (!completedAt) return null;
+  return toDateKey(new Date(completedAt));
+}

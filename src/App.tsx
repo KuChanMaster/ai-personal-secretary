@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { db } from './db';
 import type { Task, ViewMode } from './types';
-import { isCompletedToday, isDueToday, isOverdue, formatDateLabel, addDays, toDateKey } from './lib/date';
+import { isCompletedToday, isDueToday, isOverdue, formatDateLabel, addDays, toDateKey, todayKey } from './lib/date';
 import TaskItem from './components/TaskItem';
 import TaskForm, { type TaskDraft } from './components/TaskForm';
-import { notificationState, requestNotificationPermission, startReminderLoop } from './lib/notifications';
+import ReviewView from './components/ReviewView';
+import StatsView from './components/StatsView';
+import { celebrateCompletion, notificationState, requestNotificationPermission, startReminderLoop } from './lib/notifications';
 
 function makeUuid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -82,6 +84,7 @@ export default function App() {
       await db.tasks.update(id, { status: 'active', completedAt: null, updatedAt: Date.now() });
     } else {
       await db.tasks.update(id, { status: 'completed', completedAt: Date.now(), updatedAt: Date.now() });
+      celebrateCompletion(task);
     }
     await refresh();
   }, [refresh]);
@@ -118,12 +121,29 @@ export default function App() {
   const completedCount = tasks.filter((t) => t.status === 'completed' && isCompletedToday(t)).length;
   const totalDueCount = overdue.length + today.length;
 
+  const headerTitle =
+    view === 'today'
+      ? formatDateLabel(todayKey())
+      : view === 'upcoming'
+        ? '未来 30 天'
+        : view === 'review'
+          ? '每日复盘'
+          : '统计';
+  const headerEyebrow =
+    view === 'today'
+      ? '今天'
+      : view === 'upcoming'
+        ? '未来 30 天'
+        : view === 'review'
+          ? '习惯与复盘'
+          : '数据概览';
+
   return (
     <div className="app">
       <header className="topbar">
         <div>
-          <p className="eyebrow">{view === 'today' ? '今天' : '未来 30 天'}</p>
-          <h1>{formatDateLabel(view === 'today' ? toDateKey(new Date()) : '') || '个人秘书'}</h1>
+          <p className="eyebrow">{headerEyebrow}</p>
+          <h1>{headerTitle}</h1>
         </div>
         <div className="topbar-actions">
           <button
@@ -134,9 +154,11 @@ export default function App() {
           >
             🔔
           </button>
-          <div className="progress-pill">
-            {completedCount}/{totalDueCount}
-          </div>
+          {(view === 'today' || view === 'upcoming') && (
+            <div className="progress-pill">
+              {completedCount}/{totalDueCount}
+            </div>
+          )}
         </div>
       </header>
 
@@ -206,6 +228,10 @@ export default function App() {
             )}
           </>
         )}
+
+        {view === 'review' && <ReviewView onTasksChanged={refresh} />}
+
+        {view === 'stats' && <StatsView tasks={tasks} />}
       </main>
 
       <button type="button" className="fab" onClick={() => { setEditing(null); setFormOpen(true); }} aria-label="添加任务">
@@ -215,6 +241,8 @@ export default function App() {
       <nav className="bottom-nav">
         <button type="button" className={view === 'today' ? 'active' : ''} onClick={() => setView('today')}>今日</button>
         <button type="button" className={view === 'upcoming' ? 'active' : ''} onClick={() => setView('upcoming')}>未来</button>
+        <button type="button" className={view === 'review' ? 'active' : ''} onClick={() => setView('review')}>复盘</button>
+        <button type="button" className={view === 'stats' ? 'active' : ''} onClick={() => setView('stats')}>统计</button>
       </nav>
 
       {formOpen && <TaskForm initial={editing} onSave={handleSave} onCancel={() => { setEditing(null); setFormOpen(false); }} />}
