@@ -168,7 +168,7 @@ export default function App() {
             <section>
               <h2 className="section-title">逾期</h2>
               {overdue.length === 0 ? (
-                <p className="empty">没有逾期任务</p>
+                <p className="empty"><span className="empty-icon">🎉</span>没有逾期任务</p>
               ) : (
                 <ul className="task-list">
                   {overdue.map((task) => (
@@ -181,7 +181,7 @@ export default function App() {
             <section>
               <h2 className="section-title">今天</h2>
               {today.length === 0 && unscheduled.length === 0 ? (
-                <p className="empty">今天还没有安排，点下方按钮添加任务</p>
+                <p className="empty"><span className="empty-icon">📝</span>今天还没有安排，点右下角 + 添加任务</p>
               ) : (
                 <ul className="task-list">
                   {today.map((task) => (
@@ -197,7 +197,7 @@ export default function App() {
             <section>
               <h2 className="section-title">今天已完成</h2>
               {completedToday.length === 0 ? (
-                <p className="empty">还没有完成任务</p>
+                <p className="empty"><span className="empty-icon">💪</span>还没有完成任务，完成一个试试</p>
               ) : (
                 <ul className="task-list">
                   {completedToday.map((task) => (
@@ -224,7 +224,7 @@ export default function App() {
               </section>
             ))}
             {future.every((g) => g.items.length === 0) && (
-              <p className="empty">未来 30 天还没有安排</p>
+              <p className="empty"><span className="empty-icon">🗓️</span>未来 30 天还没有安排</p>
             )}
           </>
         )}
@@ -239,10 +239,10 @@ export default function App() {
       </button>
 
       <nav className="bottom-nav">
-        <button type="button" className={view === 'today' ? 'active' : ''} onClick={() => setView('today')}>今日</button>
-        <button type="button" className={view === 'upcoming' ? 'active' : ''} onClick={() => setView('upcoming')}>未来</button>
-        <button type="button" className={view === 'review' ? 'active' : ''} onClick={() => setView('review')}>复盘</button>
-        <button type="button" className={view === 'stats' ? 'active' : ''} onClick={() => setView('stats')}>统计</button>
+        <button type="button" className={view === 'today' ? 'active' : ''} onClick={() => setView('today')}><span className="nav-icon">☀️</span><span>今日</span></button>
+        <button type="button" className={view === 'upcoming' ? 'active' : ''} onClick={() => setView('upcoming')}><span className="nav-icon">📅</span><span>未来</span></button>
+        <button type="button" className={view === 'review' ? 'active' : ''} onClick={() => setView('review')}><span className="nav-icon">🌙</span><span>复盘</span></button>
+        <button type="button" className={view === 'stats' ? 'active' : ''} onClick={() => setView('stats')}><span className="nav-icon">📊</span><span>统计</span></button>
       </nav>
 
       {formOpen && <TaskForm initial={editing} onSave={handleSave} onCancel={() => { setEditing(null); setFormOpen(false); }} />}

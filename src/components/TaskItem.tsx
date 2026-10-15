@@ -1,5 +1,5 @@
 import type { Task } from '../types';
-import { formatDateLabel } from '../lib/date';
+import { formatDateLabel, isOverdue } from '../lib/date';
 
 interface Props {
   task: Task;
@@ -9,6 +9,8 @@ interface Props {
 }
 
 export default function TaskItem({ task, onToggle, onEdit, onDelete }: Props) {
+  const overdue = isOverdue(task);
+
   return (
     <li className="task-item">
       <button
@@ -27,8 +29,12 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: Props) {
           </span>
         </span>
         <span className="task-meta">
-          {task.dueDate && <span>{formatDateLabel(task.dueDate)}</span>}
-          {task.dueTime && <span>{task.dueTime}</span>}
+          {task.dueDate && (
+            <span className={`meta-chip ${overdue ? 'overdue' : task.status === 'completed' ? '' : 'today'}`}>
+              {formatDateLabel(task.dueDate)}
+            </span>
+          )}
+          {task.dueTime && <span className="meta-chip">{task.dueTime}</span>}
           {task.note && <span className="note">{task.note}</span>}
         </span>
       </button>
